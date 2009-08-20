@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-21 05:12:41
+;;;; Updated: 2009-08-21 07:52:46
 ;;;;
 
 ;;;; * package
@@ -87,8 +87,12 @@
   (multiple-value-bind (doc body~)
       (split-documentation body)
     `(,(if (null args) 'invoke* 'identity)
-      (make-*deferred :description ,doc
-                      :body (lambda ,args ,@body)))))
+      (make-*deferred
+       :description ,doc
+       :body ,(if body
+                  `(lambda ,args ,@body)
+                `(let ((#1=#:fn ,args))
+                   (lambda (&rest #2=#:args) (apply #1# #2#))))))))
 
 (defun defer* (fn &optional args)
   "Make and invoke new deferred that calls function with args."

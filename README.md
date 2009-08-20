@@ -1,4 +1,4 @@
-「あとでこれやっといて」ってするもの
+「あとでこれやっといて」とかいう
 
 以下殴り書き。意味不明なほど変更される可能性あり。
 
@@ -15,6 +15,10 @@ deferred: args &body body
 ----------------------------
 lambda 式みたいに書いて deferred を作る。
 
+deferred: function
+---------------------
+その function を呼び出す deferred を作る。
+
 
 add-callbacks: deferred &rest callbacks
 -------------------------------------------
@@ -28,21 +32,19 @@ deferred から連なる deferred chain の結果を再現する。結果だけ�
 例
 ====
     * (setq d1 (deferred () (values 1 2 3))
-            d2 (deferred (&rest vals) (values-list (mapcar #'1+ vals)))
-            d3 (deferred (&rest vals) (msgbox "~{~S~^, ~}" vals)))
+            d2 (deferred (&rest vals) (mapcar #'1+ vals))
+            d3 (deferred (partial #'msgbox "~{~S~^, ~}")))
     => #S(deferred/core::*deferred ...)
-    
+
+d1 は多値で 1, 2, 3 を返す。
+d2 は受け取った number にそれぞれ 1+ してリストにまとめる。
+d3 は受け取ったリストの各要素を msgbox で表示する。
+
     ;;; d1->d2->d3 と繋げる
     * (add-callbacks d1 d2 d3)
     => #S(deferred/core::*deferred ...)
 
-deferred 式は引数無しの deferred を作った場合即座に実行するので、d1 は最初の setq した直後に実行され、result に戻り値のリスト `(1 2 3)` が保存される。この時点で d1 に callback があればそれも実行されるのだが、まだ無いので何も起きない。
-add-callbacks した直後に d1 の result を引数として d2 が実行され、続いてその結果を引数として d3 が実行される。
-    d1 => 1, 2, 3
-    d2(1, 2, 3) => 2, 3, 4
-    d3(2, 3, 4)
-となり、最終的には msgbox で "1, 2, 3" と表示される。
-
+d1 の戻り値である 1, 2, 3 が d2 に与えられ、d2 は (2 3 4) を d3 に渡す。d3 がそれを msgbox で表示するので "2, 3, 4" と表示される。
 
 
 
