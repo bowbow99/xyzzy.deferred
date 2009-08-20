@@ -1,80 +1,129 @@
-;;;; -*- mode: lisp; package: deferred -*-
+;;;; -*- mode: lisp; package: deferred/core -*-
 ;;;;
 ;;;; deferred.l -- deferred for xyzzy-lisp.
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-19 03:41:36
+;;;; Updated: 2009-08-21 05:12:41
 ;;;;
 
-;;;; package
+;;;; * package
 (eval-when (:execute :load-toplevel :compile-toplevel)
-  (defpackage "deferred"
+  (defpackage "deferred/core"
     (:use "lisp" "editor")))
 
-(in-package "deferred")
+(in-package "deferred/core")
 
-;;;; utilities
+(export '(deferred defer defer*
+          add-callbacks reproduce))
 
-(defun partial* (fn initial)
-  (lambda (&rest more)
-    (apply fn (append initial more))))
+;;;; * utilities
 
-(defun partial (fn &rest initial) (partial* fn initial))
+(defun callable-p (obj)
+  "Return non-nil if obj is a function or function-name."
+  (or (functionp obj)
+      (and (symbolp obj)
+           (fboundp obj))))
 
-(defun later (fn)
-  (start-timer 0.016 fn t))
+(defmacro async (&body body)
+  "Execute body asynchronously."
+  `(start-timer 0 (lambda () ,@body) t))
 
 (require "symbol-macrolet")
 
 (defmacro with-struct ((struct &rest slots) object &body body)
+  "Evaluate body in environment that symbols specified as struct and slots to
+ object and its corresponding value."
   (let ((package (symbol-package struct)))
     (labels ((accessor (slot)
-               (intern (concat (symbol-name struct) "-"
-                               (symbol-name slot))
-                       package)))
+               (intern (apply #'concat (mapcar #'symbol-name
+                                         (list struct '- slot)))
+                       package))
+             (gen-symbol/expansion (slot)
+               `(,slot (,(accessor slot) ,struct))))
       `(let ((,struct ,object))
-         (symbol-macrolet
-             ,(mapcar (lambda (slot)
-                        `(,slot (,(accessor slot) ,struct)))
-                slots)
+         (symbol-macrolet ,(mapcar #'gen-symbol/expansion slots)
            ,@body)))))
+
+(defun split-documentation (body)
+  "Return documentation string and forms as multiple values."
+  (if (stringp (car body))
+      (values (car body) (cdr body))
+    (values nil body)))
 
 ;;;;
 ;;;; * deferred object
 ;;;;
 
-(defstruct deferred
-  body next result)
+(defstruct *deferred
+  description body result callback condition)
 
+(defmacro with-deferred (d &body body)
+  `(with-struct (*deferred description body result callback condition) ,d
+     ,@body))
 
-(defun fire* (d &optional args)
-  (with-struct (deferred next body result) d
+(setf (get 'with-deferred 'lisp-indent-hook) 1)
+
+(defun invoke* (d &optional args)
+  "Invoke [d]eferred's own process."
+  (with-deferred d
+    (async
+     (setf result (multiple-value-list (apply body args))
+           condition :returned)
+     (invoke-next d))
+    d))
+
+(defun invoke-next (d)
+  "Invoke next callback of [d]eferred."
+  (with-deferred d
+    (when (and (eql condition :returned)
+               callback)
+      (async
+       (invoke* callback result)))
+    d))
+
+(defmacro deferred (args &body body)
+  "Make new deferred object."
+  (multiple-value-bind (doc body~)
+      (split-documentation body)
+    `(,(if (null args) 'invoke* 'identity)
+      (make-*deferred :description ,doc
+                      :body (lambda ,args ,@body)))))
+
+(defun defer* (fn &optional args)
+  "Make and invoke new deferred that calls function with args."
+  (invoke* (deferred (&rest args) (apply fn args)) args))
+
+(defun defer (fn &rest args)
+  "Make and invoke new deferred that calls function with args."
+  (defer* fn args))
+
+(defun last-callback (deferred)
+  "Return last callback of deferred chain."
+  (if (null (*deferred-callback deferred))
+      deferred
+    (last-callback (*deferred-callback deferred))))
+
+(defun add-callback-1 (deferred callback)
+  "Put callback on next of last callback of deferred chain."
+  (let ((last (last-callback deferred)))
     (prog1
-        (setf result (multiple-value-list
-                      (apply (deferred-body d) args)))
-      (fire-next d))))
+        (setf (*deferred-callback last) callback)
+      (invoke-next last))))
 
-(defun fire (d &rest args)
-  (fire* d args))
+(defun add-callbacks (deferred &rest callbacks)
+  "Put callbacks after last callback of deferred chain."
+  (if (null callbacks)
+      deferred
+    (apply #'add-callbacks
+           (add-callback-1 deferred (car callbacks))
+           (cdr callbacks))))
 
-(defun fire-next (d)
-  (when (deferred-next d)
-    (later (partial #'fire* (deferred-next d) (deferred-result d)))))
+(defun reproduce (deferred)
+  "Return what deferred chain returned, or signal what it signaled."
+  (with-deferred (last-callback deferred)
+    (case condition
+      (:returned (values-list result))
+      (t (error condition)))))
 
-
-#|
-(defmacro deferred:let (bindings &body body))
-(defmacro deferred:when (condition &body body))
-(defmacro deferred:while (condition &body body))
-(defmacro deferred:loop (&body body))
-
-(defmacro deferred:handler-case (form &rest handlers))
-
-;;; deferred Ç…ílÇï‘Ç≥ÇπÇÈíjÇÃêlÇ¡Çƒ•••
-(defun deferred:mapcar (fn list &rest lists))
-(defun deferred:mapcan ...)
-(defun deferred:find-if ...)
-
-|#
 ;;;; deferred.l ends here
