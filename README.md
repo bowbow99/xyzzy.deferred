@@ -51,6 +51,7 @@ d1 の戻り値である 1, 2, 3 が d2 に与えられ、d2 は (2 3 4) を d3 
 動作
 =======
 deferred object は内部的には deferred::*deferred という structure で、以下の slots を持つ。
+
 - description: 説明文字列
 - body: 自身の処理（関数）
 - result: body の結果を保存する
