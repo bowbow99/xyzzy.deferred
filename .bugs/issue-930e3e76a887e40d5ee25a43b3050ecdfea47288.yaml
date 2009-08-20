@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: variable of current deferred
+desc: bind *deferred* or something to deferred that currently running.
+type: :feature
+component: xyzzy.deferred
+release: 
+reporter: bowbow99 <bowbow99@gmail.com>
+status: :unstarted
+disposition: 
+creation_time: 2009-08-20 20:31:15.904625 Z
+references: []
+
+id: 930e3e76a887e40d5ee25a43b3050ecdfea47288
+log_events: 
+- - 2009-08-20 20:31:38.934625 Z
+  - bowbow99 <bowbow99@gmail.com>
+  - created
+  - ""

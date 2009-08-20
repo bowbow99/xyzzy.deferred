@@ -1,0 +1,20 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: repeating
+desc: like while or loop.
+type: :feature
+component: xyzzy.deferred
+release: 
+reporter: bowbow99 <bowbow99@gmail.com>
+status: :unstarted
+disposition: 
+creation_time: 2009-08-20 20:26:11.338000 Z
+references: []
+
+id: 9b961bc9d7be7b8f2f91f1db1a13ffbc5abaa013
+log_events: 
+- - 2009-08-20 20:30:06.446000 Z
+  - bowbow99 <bowbow99@gmail.com>
+  - created
+  - |-
+    WAG: returning same or another deferred object causes the deferred
+    will be next callback.

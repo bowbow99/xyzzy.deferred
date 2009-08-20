@@ -1,0 +1,22 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: deferred from function
+desc: generate deferred that just calls the function with given args.
+type: :feature
+component: xyzzy.deferred
+release: 
+reporter: bowbow99 <bowbow99@gmail.com>
+status: :unstarted
+disposition: 
+creation_time: 2009-08-20 20:42:10.106625 Z
+references: []
+
+id: 326772ea0325e905d643b42fb810182f4f22a4b9
+log_events: 
+- - 2009-08-20 20:42:10.948625 Z
+  - bowbow99 <bowbow99@gmail.com>
+  - created
+  - ""
+- - 2009-08-20 21:12:16.408125 Z
+  - bowbow99 <bowbow99@gmail.com>
+  - commented
+  - "(deferred #'my-func) has empty body!"
