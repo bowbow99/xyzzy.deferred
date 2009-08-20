@@ -64,7 +64,9 @@ deferred (body) の実行は deferred::invoke* によって行われる。その
 body を実行後、その結果を引数として callback にセットされた次の deferred を実行する。
 
 deferred は処理を実行して、結果は自身の result に保存しつつ次の callback に渡すだけなので、その結果を使ってどうこうするには
+
 - どうこうする callback を追加する
 - どこかから reproduce して結果を取得する
+
 のいずれかをする必要がある。
 
