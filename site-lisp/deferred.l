@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-21 14:19:13
+;;;; Updated: 2009-08-21 14:33:54
 ;;;;
 
 ;;;; * package
@@ -60,18 +60,17 @@
 (defstruct *deferred
   description body result callback condition handlers)
 
-(defmacro with-deferred (d &body body)
-  `(with-struct (*deferred description body result callback condition handlers) ,d
-     ,@body))
+(defmacro with-deferred (slots d &body body)
+  `(with-struct (*deferred ,@slots) ,d ,@body))
 
-(setf (get 'with-deferred 'lisp-indent-hook) 1)
+(setf (get 'with-deferred 'lisp-indent-hook) 2)
 
 
 ;;;; execute deferred
 
 (defun fire* (d &optional args)
   "Invoke [d]eferred's own process."
-  (with-deferred d
+  (with-deferred (result condition body) d
     (async
      (multiple-value-setq (result condition)
        (handler-case (let ((*deferred* d))
@@ -79,8 +78,8 @@
                        (apply body args))
          (condition (c)
            (values nil c))
-         (:no-error (&rest results)
-          (values results :returned))))
+         (:no-error (&rest values)
+          (values values :returned))))
      (if (eql condition :returned)
          (fire-next d)
        (fire-recover d))
@@ -91,7 +90,7 @@
 
 (defun fire-next (d)
   "Invoke next callback of [d]eferred."
-  (with-deferred d
+  (with-deferred (condition callback result) d
     (when (and (eql condition :returned)
                callback)
       (async
@@ -99,7 +98,7 @@
     d))
 
 (defun fire-recover (deferred)
-  (with-deferred deferred
+  (with-deferred (condition handlers callback) deferred
     (when (typep condition 'condition)
       (let ((handler (cadr (find-if (lambda (handler)
                                       (typep condition (car handler)))
@@ -166,7 +165,8 @@
 
 (defun reproduce (deferred)
   "Return what deferred chain returned, or signal what it signaled."
-  (with-deferred (last-callback deferred)
+  (with-deferred (condition result)
+    (last-callback deferred)
     (case condition
       (:returned (values-list result))
       (t (error condition)))))
