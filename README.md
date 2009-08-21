@@ -8,6 +8,7 @@
     (use-package "deferred/core")
 
 
+
 関数やらマクロやら
 ====================
 
@@ -20,6 +21,15 @@ deferred: function
 その function を呼び出す deferred を作る。
 
 
+fire: deferred &rest args
+----------------------------
+その deferred を実行する。funcall 互換。
+
+fire*: deferred &optional args
+---------------------------------
+その deferred を実行する。apply 互換。
+
+
 add-callbacks: deferred &rest callbacks
 -------------------------------------------
 deferred から連なる deferred chain の最後に callbacks をくっつける。
@@ -28,23 +38,6 @@ deferred から連なる deferred chain の最後に callbacks をくっつけ�
 reproduce deferred
 ----------------------
 deferred から連なる deferred chain の結果を再現する。結果だけで、副作用は再現されない。 
-
-例
-====
-    * (setq d1 (deferred () (values 1 2 3))
-            d2 (deferred (&rest vals) (mapcar #'1+ vals))
-            d3 (deferred (partial #'msgbox "~{~S~^, ~}")))
-    => #S(deferred/core::*deferred ...)
-
-d1 は多値で 1, 2, 3 を返す。
-d2 は受け取った number にそれぞれ 1+ してリストにまとめる。
-d3 は受け取ったリストの各要素を msgbox で表示する。
-
-    ;;; d1->d2->d3 と繋げる
-    * (add-callbacks d1 d2 d3)
-    => #S(deferred/core::*deferred ...)
-
-d1 の戻り値である 1, 2, 3 が d2 に与えられ、d2 は (2 3 4) を d3 に渡す。d3 がそれを msgbox で表示するので "2, 3, 4" と表示される。
 
 
 
@@ -70,3 +63,25 @@ deferred は処理を実行して、結果は自身の result に保存しつつ
 
 のいずれかをする必要がある。
 
+
+
+例
+====
+    * (setq d1 (deferred () (values 1 2 3))
+            d2 (deferred (&rest vals) (mapcar #'1+ vals))
+            d3 (deferred (partial #'msgbox "~{~S~^, ~}")))
+    => #S(deferred/core::*deferred ...)
+
+d1 は多値で 1, 2, 3 を返す。
+d2 は受け取った number にそれぞれ 1+ してリストにまとめる。
+d3 は受け取ったリストの各要素を msgbox で表示する。
+
+    ;;; d1->d2->d3 と繋げる
+    * (add-callbacks d1 d2 d3)
+    => #S(deferred/core::*deferred ...)
+
+この時点では各 deferred は作成されただけでまだ実行されていない。
+
+    * (fire d1)
+
+d1 が実行されると、その結果である [1, 2, 3] をもって d2 が呼び出され、さらにその結果である (2, 3, 4) を引数に d3 が呼び出され、msgbox で "2, 3, 4" と表示される。
