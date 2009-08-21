@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-21 10:08:58
+;;;; Updated: 2009-08-21 10:13:02
 ;;;;
 
 ;;;; * package
@@ -71,13 +71,13 @@
     (async
      (setf result (multiple-value-list (apply body args))
            condition :returned)
-     (invoke-next d))
+     (fire-next d))
     d))
 
 (defun fire (d &rest args)
   (fire* d args))
 
-(defun invoke-next (d)
+(defun fire-next (d)
   "Invoke next callback of [d]eferred."
   (with-deferred d
     (when (and (eql condition :returned)
@@ -116,7 +116,7 @@
   (let ((last (last-callback deferred)))
     (prog1
         (setf (*deferred-callback last) callback)
-      (invoke-next last))))
+      (fire-next last))))
 
 (defun add-callbacks (deferred &rest callbacks)
   "Put callbacks after last callback of deferred chain."
