@@ -7,8 +7,8 @@ type: :task
 component: xyzzy.deferred
 release: 
 reporter: bowbow99 <bowbow99@gmail.com>
-status: :unstarted
-disposition: 
+status: :closed
+disposition: :fixed
 creation_time: 2009-08-20 20:22:42.848250 Z
 references: []
 
@@ -20,3 +20,9 @@ log_events:
   - |-
     eg. make a deferred and a function that invoke the deferred, and
     make the function a command.
+- - 2009-08-21 01:10:35.929500 Z
+  - bowbow99 <bowbow99@gmail.com>
+  - closed with disposition fixed
+  - |-
+    I stopped firing deferred immediately.
+    If user want so, they can do so via function fire.
