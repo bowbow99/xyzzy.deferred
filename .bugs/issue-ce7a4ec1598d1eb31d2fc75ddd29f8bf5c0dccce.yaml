@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: setting indentation
+desc: for lisp-mode.
+type: :feature
+component: xyzzy.deferred
+release: 
+reporter: bowbow99 <bowbow99@gmail.com>
+status: :unstarted
+disposition: 
+creation_time: 2009-08-21 02:21:00.093375 Z
+references: []
+
+id: ce7a4ec1598d1eb31d2fc75ddd29f8bf5c0dccce
+log_events: 
+- - 2009-08-21 02:21:01.335375 Z
+  - bowbow99 <bowbow99@gmail.com>
+  - created
+  - ""

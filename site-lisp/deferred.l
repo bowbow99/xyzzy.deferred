@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-21 10:51:18
+;;;; Updated: 2009-08-21 14:19:13
 ;;;;
 
 ;;;; * package
@@ -58,28 +58,33 @@
 ;;;;
 
 (defstruct *deferred
-  description body result callback condition)
+  description body result callback condition handlers)
 
 (defmacro with-deferred (d &body body)
-  `(with-struct (*deferred description body result callback condition) ,d
+  `(with-struct (*deferred description body result callback condition handlers) ,d
      ,@body))
 
 (setf (get 'with-deferred 'lisp-indent-hook) 1)
 
 
-;;;; firing deferred and it's callback
+;;;; execute deferred
 
 (defun fire* (d &optional args)
   "Invoke [d]eferred's own process."
   (with-deferred d
     (async
-     (setf result (multiple-value-list
-                   (let ((*deferred* d))
-                     (declare (special *deferred*))
-                     (apply body args)))
-           condition :returned)
-     (fire-next d))
-    d))
+     (multiple-value-setq (result condition)
+       (handler-case (let ((*deferred* d))
+                       (declare (special *deferred*))
+                       (apply body args))
+         (condition (c)
+           (values nil c))
+         (:no-error (&rest results)
+          (values results :returned))))
+     (if (eql condition :returned)
+         (fire-next d)
+       (fire-recover d))
+     d)))
 
 (defun fire (d &rest args)
   (fire* d args))
@@ -92,6 +97,18 @@
       (async
        (fire* callback result)))
     d))
+
+(defun fire-recover (deferred)
+  (with-deferred deferred
+    (when (typep condition 'condition)
+      (let ((handler (cadr (find-if (lambda (handler)
+                                      (typep condition (car handler)))
+                             handlers))))
+        (when handler
+          (let ((d (deferred (condition)
+                     (funcall handler condition))))
+            (add-callback-1 d callback)
+            (fire d condition)))))))
 
 
 ;;;; create deferred object
