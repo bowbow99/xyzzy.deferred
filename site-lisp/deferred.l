@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-21 10:21:41
+;;;; Updated: 2009-08-21 10:26:35
 ;;;;
 
 ;;;; * package
@@ -78,8 +78,7 @@
      (fire-next d))
     d))
 
-(defun fire (d &rest a
-              rgs)
+(defun fire (d &rest args)
   (fire* d args))
 
 (defun fire-next (d)
