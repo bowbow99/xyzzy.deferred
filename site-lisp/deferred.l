@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-21 10:13:02
+;;;; Updated: 2009-08-21 10:21:41
 ;;;;
 
 ;;;; * package
@@ -16,7 +16,8 @@
 
 (export '(deferred defer defer*
           fire fire*
-          add-callbacks reproduce))
+          add-callbacks reproduce
+          *deferred*))
 
 ;;;; * utilities
 
@@ -69,12 +70,16 @@
   "Invoke [d]eferred's own process."
   (with-deferred d
     (async
-     (setf result (multiple-value-list (apply body args))
+     (setf result (multiple-value-list
+                   (let ((*deferred* d))
+                     (declare (special *deferred*))
+                     (apply body args)))
            condition :returned)
      (fire-next d))
     d))
 
-(defun fire (d &rest args)
+(defun fire (d &rest a
+              rgs)
   (fire* d args))
 
 (defun fire-next (d)
