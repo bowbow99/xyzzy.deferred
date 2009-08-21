@@ -5,8 +5,8 @@ type: :feature
 component: xyzzy.deferred
 release: 
 reporter: bowbow99 <bowbow99@gmail.com>
-status: :unstarted
-disposition: 
+status: :closed
+disposition: :fixed
 creation_time: 2009-08-20 20:31:15.904625 Z
 references: []
 
@@ -15,4 +15,8 @@ log_events:
 - - 2009-08-20 20:31:38.934625 Z
   - bowbow99 <bowbow99@gmail.com>
   - created
+  - ""
+- - 2009-08-21 01:22:40.452750 Z
+  - bowbow99 <bowbow99@gmail.com>
+  - closed with disposition fixed
   - ""
