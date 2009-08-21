@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-21 10:06:03
+;;;; Updated: 2009-08-21 10:08:58
 ;;;;
 
 ;;;; * package
@@ -15,6 +15,7 @@
 (in-package "deferred/core")
 
 (export '(deferred defer defer*
+          fire fire*
           add-callbacks reproduce))
 
 ;;;; * utilities
