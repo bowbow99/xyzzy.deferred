@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-21 10:26:35
+;;;; Updated: 2009-08-21 10:51:18
 ;;;;
 
 ;;;; * package
@@ -66,6 +66,9 @@
 
 (setf (get 'with-deferred 'lisp-indent-hook) 1)
 
+
+;;;; firing deferred and it's callback
+
 (defun fire* (d &optional args)
   "Invoke [d]eferred's own process."
   (with-deferred d
@@ -90,6 +93,9 @@
        (fire* callback result)))
     d))
 
+
+;;;; create deferred object
+
 (defmacro deferred (args &body body)
   "Make new deferred object."
   (multiple-value-bind (doc body~)
@@ -109,6 +115,9 @@
   "Make and invoke new deferred that calls function with args."
   (defer* fn args))
 
+
+;;;; get/set callback(s)
+
 (defun last-callback (deferred)
   "Return last callback of deferred chain."
   (if (null (*deferred-callback deferred))
@@ -116,19 +125,27 @@
     (last-callback (*deferred-callback deferred))))
 
 (defun add-callback-1 (deferred callback)
+  (setf (*deferred-callback deferred) callback)
+  (fire-next deferred))
+
+(defun add-callback-last (deferred callback)
   "Put callback on next of last callback of deferred chain."
-  (let ((last (last-callback deferred)))
-    (prog1
-        (setf (*deferred-callback last) callback)
-      (fire-next last))))
+  (prog1 deferred
+    (add-callback-1 (last-callback deferred) callback)))
 
 (defun add-callbacks (deferred &rest callbacks)
   "Put callbacks after last callback of deferred chain."
   (if (null callbacks)
       deferred
     (apply #'add-callbacks
-           (add-callback-1 deferred (car callbacks))
+           (add-callback-last deferred (car callbacks))
            (cdr callbacks))))
+
+(defun insert-callback (deferred callback)
+  (let ((rest (*deferred-callback deferred)))
+    (add-callback-1 deferred (add-callback-last callback rest))))
+
+;;;; reproduce deferred's result
 
 (defun reproduce (deferred)
   "Return what deferred chain returned, or signal what it signaled."
