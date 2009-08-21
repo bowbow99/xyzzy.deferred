@@ -18,3 +18,17 @@ log_events:
   - |-
     WAG: returning same or another deferred object causes the deferred
     will be next callback.
+- - 2009-08-21 02:14:16.980125 Z
+  - bowbow99 <bowbow99@gmail.com>
+  - commented
+  - |-
+    putting current deferred to its' own callback means there's no way
+    to hold callbacks that originally stored in -callback.
+- - 2009-08-21 02:16:49.120500 Z
+  - bowbow99 <bowbow99@gmail.com>
+  - commented
+  - |-
+    I thought throwing condition like "repeat" or "interrupt" and 
+    pass another (or same) deferred with it allow insert it into 
+    callback chain by handler.
+    that means I have to implement condition handling first...
