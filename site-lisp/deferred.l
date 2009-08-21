@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-21 07:52:46
+;;;; Updated: 2009-08-21 10:05:46
 ;;;;
 
 ;;;; * package
@@ -64,7 +64,7 @@
 
 (setf (get 'with-deferred 'lisp-indent-hook) 1)
 
-(defun invoke* (d &optional args)
+(defun fire* (d &optional args)
   "Invoke [d]eferred's own process."
   (with-deferred d
     (async
@@ -73,20 +73,23 @@
      (invoke-next d))
     d))
 
+(defun fire (d &rest args)
+  (fire* d args))
+
 (defun invoke-next (d)
   "Invoke next callback of [d]eferred."
   (with-deferred d
     (when (and (eql condition :returned)
                callback)
       (async
-       (invoke* callback result)))
+       (fire* callback result)))
     d))
 
 (defmacro deferred (args &body body)
   "Make new deferred object."
   (multiple-value-bind (doc body~)
       (split-documentation body)
-    `(,(if (null args) 'invoke* 'identity)
+    `(,(if (null args) 'fire* 'identity)
       (make-*deferred
        :description ,doc
        :body ,(if body
@@ -96,7 +99,7 @@
 
 (defun defer* (fn &optional args)
   "Make and invoke new deferred that calls function with args."
-  (invoke* (deferred (&rest args) (apply fn args)) args))
+  (fire* (deferred (&rest args) (apply fn args)) args))
 
 (defun defer (fn &rest args)
   "Make and invoke new deferred that calls function with args."
