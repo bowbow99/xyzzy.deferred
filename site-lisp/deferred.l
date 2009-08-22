@@ -1,10 +1,10 @@
-;;;; -*- mode: lisp; package: deferred/core -*-
+;;;; -*- mode: lisp; package: deferred -*-
 ;;;;
 ;;;; deferred.l -- deferred for xyzzy-lisp.
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-22 10:17:32
+;;;; Updated: 2009-08-22 13:04:10
 ;;;;
 
 ;;;; * package
@@ -31,7 +31,8 @@
   "Execute body asynchronously."
   `(start-timer 0 (lambda () ,@body) t))
 
-(require "symbol-macrolet")
+(eval-when (:execute :load-toplevel :compile-toplevel)
+  (require "symbol-macrolet"))
 
 (defmacro with-struct ((struct &rest slots) object &body body)
   "Evaluate body in environment that symbols specified as struct and slots to
@@ -47,12 +48,6 @@
          (symbol-macrolet ,(mapcar #'gen-symbol/expansion slots)
            ,@body)))))
 
-(defun split-documentation (body)
-  "Return documentation string and forms as multiple values."
-  (if (stringp (car body))
-      (values (car body) (cdr body))
-    (values nil body)))
-
 ;;;;
 ;;;; * deferred object
 ;;;;
@@ -65,21 +60,43 @@
 
 (setf (get 'with-deferred 'lisp-indent-hook) 2)
 
+;;;; create deferred object
+
+(defmacro deferred (args &body body)
+  "Make new deferred object."
+  (let ((desc (when (stringp (car body))
+                (prog1 (car body) (setq body (cdr body)))))
+        (handlers (let ((last (last body)))
+                    (when (and (consp last)
+                               (consp (car last))
+                               (eq (caar last) :handlers))
+                      (prog1 (cdar (last body))
+                        (setq body (butlast body)))))))
+    `(make-*deferred
+      :description ,desc
+      :body ,(if body `(lambda ,args ,@body)
+               `(lambda (&rest #1=#:args) (apply ,args #1#)))
+      :handlers (list ,@(mapcar (lambda (handler)
+                                  `(list ',(car handler)
+                                         (lambda ,@(cdr handler))))
+                          handlers)))))
+
+(setf (get 'deferred 'lisp-indent-hook) 'defun)
 
 ;;;; execute deferred
 
 (defun fire* (d &optional args)
-  "Invoke [d]eferred's own process."
+  "Invoke deferred's own process."
   (with-deferred (result condition body) d
     (async
      (multiple-value-setq (result condition)
-       (handler-case (let ((*deferred* d))
-                       (declare (special *deferred*))
-                       (apply body args))
+       (handler-case
+           (values (let ((*deferred* d))
+                     (declare (special *deferred*))
+                     (multiple-value-list (apply body args)))
+                   :returned)
          (condition (c)
-           (values nil c))
-         (:no-error (&rest values)
-          (values values :returned))))
+           (values nil c))))
      (if (eql condition :returned)
          (fire-next d)
        (fire-recover d))
@@ -98,45 +115,16 @@
     d))
 
 (defun fire-recover (deferred)
-  (with-deferred (condition handlers callback) deferred
-    (when (typep condition 'condition)
-      (let ((handler (cadr (find-if (lambda (handler)
-                                      (typep condition (car handler)))
-                             handlers))))
-        (when handler
-          (let ((d (deferred (condition)
-                     (funcall handler condition))))
-            (add-callback-1 d callback)
-            (fire d condition)))))))
-
-
-;;;; create deferred object
-
-(defmacro deferred (args &body body)
-  "Make new deferred object."
-  (let ((desc (when (stringp (car body))
-                (prog1 (car body) (setq body (cdr body)))))
-        (handlers (when (eq (caar (last body)) :handlers)
-                    (prog1 (cdar (last body))
-                      (setq body (butlast body))))))
-    `(make-*deferred
-      :description ,desc
-      :body ,(if body `(lambda ,args ,@body)
-               `(lambda (&rest #1=#:args) (apply ,args #1#)))
-      :handlers (list ,@(mapcar (lambda (handler)
-                                  `(list ',(car handler)
-                                         (lambda ,@(cdr handler))))
-                          handlers)))))
-
-
-(defun defer* (fn &optional args)
-  "Make and invoke new deferred that calls function with args."
-  (fire* (deferred (&rest args) (apply fn args)) args))
-
-(defun defer (fn &rest args)
-  "Make and invoke new deferred that calls function with args."
-  (defer* fn args))
-
+  (with-deferred (condition handlers result) deferred
+    (let ((handler (cadr (find-if (lambda (handler)
+                                    (typep condition (car handler)))
+                           handlers))))
+      (when (and (typep condition 'condition) handler)
+        (fire (deferred (c)
+                (when (setf result (multiple-value-list (funcall handler c))
+                            condition :returned)
+                  (fire-next deferred)))
+              condition)))))
 
 ;;;; get/set callback(s)
 
