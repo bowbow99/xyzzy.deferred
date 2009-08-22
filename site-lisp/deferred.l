@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-22 13:04:10
+;;;; Updated: 2009-08-22 13:47:29
 ;;;;
 
 ;;;; * package
@@ -14,7 +14,7 @@
 
 (in-package "deferred")
 
-(export '(deferred defer defer*
+(export '(deferred deferred-w/handlers
           fire fire*
           add-callbacks reproduce
           *deferred*))
@@ -48,6 +48,15 @@
          (symbol-macrolet ,(mapcar #'gen-symbol/expansion slots)
            ,@body)))))
 
+(defun values-places (object &rest places)
+  (values-list (mapcar (lambda (place)
+                         (funcall place object))
+                 places)))
+
+(defun uncons (object)
+  (if (consp object)
+      (values-places object #'car #'cdr)
+    object))
 ;;;;
 ;;;; * deferred object
 ;;;;
@@ -81,7 +90,20 @@
                                          (lambda ,@(cdr handler))))
                           handlers)))))
 
-(setf (get 'deferred 'lisp-indent-hook) 'defun)
+(defmacro deferred-w/handlers (args body &rest handlers)
+  "Make new deferred object with handlers."
+  (let ((d (gensym)))
+    `(let ((,d (deferred ,args ,body)))
+       (setf ,@(mapcan (lambda (condition/handler)
+                         (multiple-value-bind (condition handler)
+                             (uncons condition/handler)
+                           `((handler ,d ,condition)
+                             (lambda ,@handler))))
+                 handlers))
+       ,d)))
+
+(setf (get 'deferred 'lisp-indent-hook) 'defun
+      (get 'deferred-w/handlers 'lisp-indent-hook) '2)
 
 ;;;; execute deferred
 
@@ -154,6 +176,20 @@
 (defun insert-callback (deferred callback)
   (let ((rest (*deferred-callback deferred)))
     (add-callback-1 deferred (add-callback-last callback rest))))
+
+;;;; get/set handler
+
+(defun handler (deferred condition)
+  (find condition (*deferred-handlers deferred) :key #'car))
+
+(defsetf handler (deferred condition) (handler)
+  (let ((d (gensym)))
+    `(let ((,d ,deferred))
+       (setf (*deferred-handlers ,d)
+             (sort (cons (list ',condition ,handler)
+                         (delete ',condition (*deferred-handlers ,d) :key #'car))
+                   #'subtypep)))))
+
 
 ;;;; reproduce deferred's result
 
