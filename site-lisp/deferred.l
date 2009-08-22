@@ -4,15 +4,15 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-22 09:20:28
+;;;; Updated: 2009-08-22 10:17:32
 ;;;;
 
 ;;;; * package
 (eval-when (:execute :load-toplevel :compile-toplevel)
-  (defpackage "deferred/core"
+  (defpackage "deferred"
     (:use "lisp" "editor")))
 
-(in-package "deferred/core")
+(in-package "deferred")
 
 (export '(deferred defer defer*
           fire fire*
@@ -111,20 +111,6 @@
 
 
 ;;;; create deferred object
-
-
-
-(defmacro deferred (args &body body)
-  "Make new deferred object."
-  (multiple-value-bind (doc body~)
-      (split-documentation body)
-    `(make-*deferred
-      :description ,doc
-      :body ,(if body
-                 `(lambda ,args ,@body)
-               `(let ((#1=#:fn ,args))
-                  (lambda (&rest #2=#:args) (apply #1# #2#)))))))
-
 
 (defmacro deferred (args &body body)
   "Make new deferred object."
