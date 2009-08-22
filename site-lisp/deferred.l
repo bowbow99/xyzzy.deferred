@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-21 14:33:54
+;;;; Updated: 2009-08-22 09:20:28
 ;;;;
 
 ;;;; * package
@@ -112,6 +112,8 @@
 
 ;;;; create deferred object
 
+
+
 (defmacro deferred (args &body body)
   "Make new deferred object."
   (multiple-value-bind (doc body~)
@@ -122,6 +124,24 @@
                  `(lambda ,args ,@body)
                `(let ((#1=#:fn ,args))
                   (lambda (&rest #2=#:args) (apply #1# #2#)))))))
+
+
+(defmacro deferred (args &body body)
+  "Make new deferred object."
+  (let ((desc (when (stringp (car body))
+                (prog1 (car body) (setq body (cdr body)))))
+        (handlers (when (eq (caar (last body)) :handlers)
+                    (prog1 (cdar (last body))
+                      (setq body (butlast body))))))
+    `(make-*deferred
+      :description ,desc
+      :body ,(if body `(lambda ,args ,@body)
+               `(lambda (&rest #1=#:args) (apply ,args #1#)))
+      :handlers (list ,@(mapcar (lambda (handler)
+                                  `(list ',(car handler)
+                                         (lambda ,@(cdr handler))))
+                          handlers)))))
+
 
 (defun defer* (fn &optional args)
   "Make and invoke new deferred that calls function with args."
@@ -165,8 +185,7 @@
 
 (defun reproduce (deferred)
   "Return what deferred chain returned, or signal what it signaled."
-  (with-deferred (condition result)
-    (last-callback deferred)
+  (with-deferred (condition result) (last-callback deferred)
     (case condition
       (:returned (values-list result))
       (t (error condition)))))
