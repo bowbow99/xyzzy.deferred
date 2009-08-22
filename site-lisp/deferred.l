@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: bowbow99 <bowbow99@gmail.com>
 ;;;; Created: 2009-08-13 19:21:33
-;;;; Updated: 2009-08-22 13:47:29
+;;;; Updated: 2009-08-22 16:31:52
 ;;;;
 
 ;;;; * package
@@ -73,22 +73,15 @@
 
 (defmacro deferred (args &body body)
   "Make new deferred object."
-  (let ((desc (when (stringp (car body))
-                (prog1 (car body) (setq body (cdr body)))))
-        (handlers (let ((last (last body)))
-                    (when (and (consp last)
-                               (consp (car last))
-                               (eq (caar last) :handlers))
-                      (prog1 (cdar (last body))
-                        (setq body (butlast body)))))))
+  (multiple-value-bind (desc body)
+      (if (stringp (car body))
+          (uncons body)
+        (values nil body))
     `(make-*deferred
       :description ,desc
       :body ,(if body `(lambda ,args ,@body)
-               `(lambda (&rest #1=#:args) (apply ,args #1#)))
-      :handlers (list ,@(mapcar (lambda (handler)
-                                  `(list ',(car handler)
-                                         (lambda ,@(cdr handler))))
-                          handlers)))))
+               `(lambda (&rest #1=#:args) (apply ,args #1#))))))
+      
 
 (defmacro deferred-w/handlers (args body &rest handlers)
   "Make new deferred object with handlers."
@@ -121,8 +114,8 @@
            (values nil c))))
      (if (eql condition :returned)
          (fire-next d)
-       (fire-recover d))
-     d)))
+       (fire-recover d)))
+    d))
 
 (defun fire (d &rest args)
   (fire* d args))
@@ -176,6 +169,13 @@
 (defun insert-callback (deferred callback)
   (let ((rest (*deferred-callback deferred)))
     (add-callback-1 deferred (add-callback-last callback rest))))
+
+(defun callback (deferred)
+  (*deferred-callback deferred))
+
+(defsetf callback (deferred) (callback)
+  `(setf (*deferred-callback ,deferred) ,callback))
+
 
 ;;;; get/set handler
 
